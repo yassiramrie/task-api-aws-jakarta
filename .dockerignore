@@ -1,0 +1,7 @@
+.git
+.github
+infra
+k8s
+*.pdf
+README.md
+main_test.go

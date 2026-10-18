@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+images:
+  - name: task-api
+    newName: REPLACE_WITH_ECR_REPOSITORY_URL
+    newTag: bootstrap

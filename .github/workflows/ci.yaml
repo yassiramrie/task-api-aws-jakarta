@@ -1,0 +1,95 @@
+name: CI and GitOps delivery
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "k8s/overlays/prod/kustomization.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform fmt -check -recursive infra/terraform
+      - run: terraform -chdir=infra/terraform init -backend=false -input=false
+      - run: terraform -chdir=infra/terraform validate
+
+  test-and-sast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+      - run: go test -race ./...
+      - name: SAST with gosec
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@v2.22.11
+          "$(go env GOPATH)/bin/gosec" ./...
+
+  dast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start target
+        run: |
+          docker network create task-demo-ci
+          docker build -t task-api:ci .
+          docker run -d --name task-api --network task-demo-ci task-api:ci
+          for attempt in $(seq 1 30); do
+            if docker run --rm --network task-demo-ci curlimages/curl:8.12.1 -fsS http://task-api:8080/healthz; then exit 0; fi
+            sleep 2
+          done
+          docker logs task-api
+          exit 1
+      - name: DAST with OWASP ZAP baseline
+        run: |
+          docker run --rm --network task-demo-ci ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py -t http://task-api:8080/tasks -m 1 -I
+
+  release:
+    if: >-
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      github.ref == 'refs/heads/main' &&
+      vars.AWS_ECR_PUSH_ROLE_ARN != '' &&
+      vars.ECR_REPOSITORY_URL != ''
+    needs: [terraform-validate, test-and-sast, dast]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    concurrency:
+      group: gitops-prod
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ECR_PUSH_ROLE_ARN }}
+          aws-region: ap-southeast-3
+      - uses: aws-actions/amazon-ecr-login@v2
+      - name: Build and push immutable image
+        env:
+          ECR_REPOSITORY_URL: ${{ vars.ECR_REPOSITORY_URL }}
+        run: |
+          docker build -t "${ECR_REPOSITORY_URL}:${GITHUB_SHA}" .
+          docker push "${ECR_REPOSITORY_URL}:${GITHUB_SHA}"
+      - name: Update GitOps image reference
+        env:
+          ECR_REPOSITORY_URL: ${{ vars.ECR_REPOSITORY_URL }}
+        run: |
+          python3 scripts/update-image.py --repository-url "$ECR_REPOSITORY_URL" --tag "$GITHUB_SHA"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add k8s/overlays/prod/kustomization.yaml
+          git commit -m "gitops: deploy ${GITHUB_SHA}" || exit 0
+          git push origin HEAD:main
