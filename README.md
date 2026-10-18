@@ -294,7 +294,7 @@ Ubah kode di branch baru, buka pull request ke `main`, dan lihat tiga job pemeri
 |---|---|
 | Status Jakarta `DISABLED` | Minta pemilik akun mengaktifkan `ap-southeast-3`, lalu tunggu status `ENABLED`. |
 | `terraform plan/apply` gagal `AccessDenied` | Identitas dari `aws sts get-caller-identity` belum punya izin untuk resource pada pesan error. |
-| EKS node gagal dibuat | Periksa kuota EC2, ketersediaan tipe `t3.medium` pada AZ yang dipilih, dan detail error Terraform. |
+| EKS node gagal dibuat | Periksa kuota EC2, kelayakan tipe instance untuk akun AWS, ketersediaan tipe pada AZ yang dipilih, dan detail error Terraform. Demo memakai dua node `t3.small`; akun yang membatasi peluncuran ke Free Tier mungkin menolak tipe yang tidak eligible. |
 | `kubectl get nodes` ditolak atau timeout | Periksa context, identitas AWS, dan apakah IP publik masih cocok dengan `cluster_public_access_cidrs`. |
 | Job `release` masih `Skipped` | Pastikan dua variable GitHub terisi, jalankan workflow manual dari branch `main`, dan tunggu tiga job pemeriksaan lulus. |
 | `release` gagal saat meminta izin AWS | Cocokkan nama repo di `terraform.tfvars`, branch `main`, dan ARN role pada variable GitHub. |
