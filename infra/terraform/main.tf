@@ -40,11 +40,12 @@ module "eks" {
   }
   eks_managed_node_groups = {
     demo = {
-      instance_types = ["t3.medium"]
-      ami_type       = "AL2023_x86_64_STANDARD"
-      min_size       = 2
-      max_size       = 3
-      desired_size   = 2
+      instance_types     = ["t3.medium"]
+      ami_type           = "AL2023_x86_64_STANDARD"
+      kubernetes_version = var.kubernetes_version
+      min_size           = 2
+      max_size           = 3
+      desired_size       = 2
     }
   }
 }
