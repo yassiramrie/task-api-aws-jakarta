@@ -1,7 +1,9 @@
 data "aws_availability_zones" "available" { state = "available" }
 
 locals {
-  azs = slice(data.aws_availability_zones.available.names, 0, 2)
+  azs                     = slice(data.aws_availability_zones.available.names, 0, 2)
+  github_repository_parts = split("/", var.github_repository)
+  github_oidc_subject     = "repo:${local.github_repository_parts[0]}@${var.github_owner_id}/${local.github_repository_parts[1]}@${var.github_repository_id}:ref:refs/heads/main"
 }
 
 module "vpc" {
@@ -87,9 +89,9 @@ data "aws_iam_policy_document" "github_trust" {
       values   = ["sts.amazonaws.com"]
     }
     condition {
-      test     = "StringLike"
+      test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repository}:*"]
+      values   = [local.github_oidc_subject]
     }
   }
 }

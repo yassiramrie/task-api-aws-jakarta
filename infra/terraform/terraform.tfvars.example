@@ -1,3 +1,5 @@
 github_repository           = "YOUR_GITHUB_USERNAME/YOUR_REPO"
+github_owner_id             = "YOUR_GITHUB_OWNER_ID"
+github_repository_id        = "YOUR_GITHUB_REPOSITORY_ID"
 cluster_public_access_cidrs = ["YOUR_PUBLIC_IP/32"]
 aws_region                  = "ap-southeast-3"

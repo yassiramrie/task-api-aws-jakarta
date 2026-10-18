@@ -21,6 +21,24 @@ variable "github_repository" {
   }
 }
 
+variable "github_owner_id" {
+  description = "Numeric GitHub account or organization ID used in the OIDC subject."
+  type        = string
+  validation {
+    condition     = can(regex("^[0-9]+$", var.github_owner_id))
+    error_message = "Use the numeric GitHub owner ID."
+  }
+}
+
+variable "github_repository_id" {
+  description = "Numeric GitHub repository ID used in the OIDC subject."
+  type        = string
+  validation {
+    condition     = can(regex("^[0-9]+$", var.github_repository_id))
+    error_message = "Use the numeric GitHub repository ID."
+  }
+}
+
 variable "kubernetes_version" {
   type    = string
   default = "1.34"

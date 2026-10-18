@@ -64,7 +64,7 @@ Setiap rilis:
     └── local-demo.sh                 Contoh lokal dari versi awal; tidak dipakai panduan AWS
 ```
 
-**File yang Anda isi:** `gitops/application.yaml` (URL repo GitHub) dan salinan `infra/terraform/terraform.tfvars.example` menjadi `terraform.tfvars` (nama repo, IP publik, Region Jakarta). **File yang diubah pipeline:** `k8s/overlays/prod/kustomization.yaml`. Jangan mengganti placeholder image produksi secara manual sebelum rilis pertama; job `release` akan mengisinya setelah image berhasil masuk ECR.
+**File yang Anda isi:** `gitops/application.yaml` (URL repo GitHub) dan salinan `infra/terraform/terraform.tfvars.example` menjadi `terraform.tfvars` (nama repo, ID numerik owner/repo GitHub, IP publik, Region Jakarta). **File yang diubah pipeline:** `k8s/overlays/prod/kustomization.yaml`. Jangan mengganti placeholder image produksi secara manual sebelum rilis pertama; job `release` akan mengisinya setelah image berhasil masuk ECR.
 
 File `terraform.tfvars`, `terraform.tfstate`, folder `.terraform/`, dan PDF CV tidak boleh masuk repository atau ZIP. Semuanya adalah file lokal/masukan pribadi atau hasil kerja Terraform, bukan kode proyek yang perlu dibagikan.
 
@@ -165,11 +165,13 @@ Buka `infra/terraform/terraform.tfvars`. Isi dengan **repo dan IP Anda**, misaln
 
 ```hcl
 github_repository           = "yassir/task-api-belajar"
+github_owner_id             = "12345678"
+github_repository_id        = "1234567890"
 cluster_public_access_cidrs = ["198.51.100.25/32"]
 aws_region                  = "ap-southeast-3"
 ```
 
-Angka `198.51.100.25` hanya contoh; ganti dengan hasil `curl`. `/32` berarti hanya IP itu yang boleh mengakses API EKS dari internet. `github_repository` harus sama persis dengan nama repo pada langkah 2. Terraform proyek ini menolak Region selain Jakarta.
+Ganti angka ID dengan ID numerik GitHub owner dan repository. Untuk melihatnya dengan GitHub CLI, jalankan `gh api repos/OWNER/REPO --jq '{repository_id: .id, owner_id: .owner.id}'`. ID ini dipakai GitHub pada subject token OIDC. `github_repository` harus sama persis dengan nama repo pada langkah 2. Angka `198.51.100.25` hanya contoh; ganti dengan hasil `curl`. `/32` berarti hanya IP itu yang boleh mengakses API EKS dari internet. Terraform proyek ini menolak Region selain Jakarta.
 
 Cek lagi akun AWS dan Region Jakarta:
 
